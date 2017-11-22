@@ -11,7 +11,7 @@ This code uses [Cassiopeia](https://github.com/meraki-analytics/cassiopeia), whi
     # Pull the data required to make role assignments
     champion_roles = get_data()
 
-    # Create one of a summoner's match using Cassiopeia
+    # Pull a summoner's most recent match using Cassiopeia
     summoner = Summoner(name="Kalturi", region="NA")
     match = summoner.match_history[0]
 
