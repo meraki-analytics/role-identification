@@ -3,9 +3,10 @@ import itertools
 import copy
 from typing import List
 
-from .pull_data import get_data
 from cassiopeia.data import Role
 from cassiopeia import Champion
+
+from .pull_data import get_data
 
 
 def get_roles(champion_roles, composition: List[Champion], top=None, jungle=None, middle=None, adc=None, support=None, verbose=False):
