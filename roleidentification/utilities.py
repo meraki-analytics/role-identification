@@ -1,5 +1,5 @@
 from roleidentification.get_roles import iterative_get_roles, get_data, Role
-from cassiopeia import Champions
+from cassiopeia import Champion
 from cassiopeia.core.match import Team
 
 
@@ -31,8 +31,7 @@ def _get_team_roles(team: Team, champion_roles=None):
 
 def get_team_roles(team: Team, champion_roles=None):
     roles = _get_team_roles(team, champion_roles)[0]
-    champions = Champions(region="NA")
-    roles = {role: champions[name] for role, name in roles.items()}
+    roles = {role: Champion(id=id_, region="NA") for role, id_ in roles.items()}
     return roles
 
 

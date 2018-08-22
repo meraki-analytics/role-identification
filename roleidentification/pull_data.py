@@ -1,5 +1,3 @@
-import copy
-
 import cassiopeia as cass
 from cassiopeia.data import Role
 
@@ -15,7 +13,9 @@ def get_data(filename=None):
     champions = cass.get_champions(region="NA")
     champion_roles = {}
     for champion in champions:
-        champion_roles[champion.name] = copy.deepcopy(champion.championgg.play_rate)
+        champion.championgg.load()
+        d = {role: champion.championgg[role].play_rate for role in champion.championgg.roles}
+        champion_roles[champion.id] = d
 
     for champion, play_rates in champion_roles.items():
         count_missing = 0

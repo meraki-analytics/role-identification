@@ -11,7 +11,7 @@ from .pull_data import get_data
 
 def get_roles(champion_roles, composition: List[Champion], top=None, jungle=None, middle=None, adc=None, support=None, verbose=False):
     """ Returns a dictionary with keys Top, Jungle, Middle, ADC, Support and values as names of the input champions. """
-    composition = [champion.name for champion in composition]
+    composition = [champion.id for champion in composition]
     second_best_metric = -float('inf')
     second_best_roles = None
     second_best_play_percents = None
@@ -170,7 +170,7 @@ def get_roles(champion_roles, composition: List[Champion], top=None, jungle=None
     return best_roles, best_metric, confidence, second_best_roles
 
 
-def iterative_get_roles(champion_roles, composition, top=None, jungle=None, middle=None, adc=None, support=None, verbose=False):
+def iterative_get_roles(champion_roles, composition: List[Champion], top=None, jungle=None, middle=None, adc=None, support=None, verbose=False):
     fixed = {}
     if top is not None:
         fixed[Role.top] = top
