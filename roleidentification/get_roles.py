@@ -240,20 +240,12 @@ def main():
     champion_roles = get_data()
     if len(sys.argv) == 6:
         c1, c2, c3, c4, c5 = sys.argv[1:6]
-        roles, prob, confidence, alternative  = iterative_get_roles(champion_roles, [c1, c2, c3, c4, c5], verbose=True)
+        roles, prob, confidence, alternative = iterative_get_roles(champion_roles, [c1, c2, c3, c4, c5], verbose=True)
         return
 
-    roles, prob, confidence, alternative  = get_roles(champion_roles, ['Galio', 'Maokai', 'Jarvan IV', 'Tristana', 'Tahm Kench'], verbose=True)
-    roles, prob, confidence, alternative  = get_roles(champion_roles, ["Cho'Gath", 'Gangplank', 'Gragas', 'Kalista', 'Thresh'], verbose=True)
-    #roles, prob, confidence, alternative = get_roles(champion_roles, ['Corki', 'Lux', 'Draven', 'Jax', 'Teemo'], verbose=True)
-    #roles, prob, confidence, alternative = get_roles(champion_roles, ['Yasuo', 'Swain', 'Corki', 'Lux', 'Nidalee'], verbose=True)
-    roles, prob, confidence, alternative  = get_roles(champion_roles, ['Ziggs', 'Lee Sin', 'Irelia', 'Draven', 'Annie'], verbose=True)
-    #roles, prob, confidence, alternative  = get_roles(champion_roles, ['Kennen', 'Ashe', 'Quinn', 'Gragas', 'Alistar'], verbose=True)
-    #roles, prob, confidence, alternative  = get_roles(champion_roles, ['Trundle', 'Elise', 'Viktor', 'Twitch', 'Gragas'], jungle='Gragas', verbose=True)
-    #roles, prob, confidence, alternative  = get_roles(champion_roles, ['Trundle', 'Elise', 'Viktor', 'Twitch', 'Gragas'], jungle='Gragas', top='Trundle', adc='Twitch', middle='Viktor', verbose=True)
-    #roles, prob, confidence, alternative  = get_roles(champion_roles, ['Trundle', 'Elise', 'Viktor', 'Twitch', 'Gragas'], jungle='Gragas', top='Trundle', adc='Twitch', middle='Viktor', support='Elise', verbose=True)
-    #roles, prob, confidence, alternative  = get_roles(champion_roles, ['Brand', 'Caitlyn', 'Vi', 'Lulu', 'Cassiopeia'], verbose=True)
-    #roles, prob, confidence, alternative  = iterative_get_roles(champion_roles, ['Brand', 'Caitlyn', 'Vi', 'Lulu', 'Cassiopeia'], verbose=True)
+    roles, prob, confidence, alternative = get_roles(champion_roles, [Champion(name='Galio', region='NA'), Champion(name='Maokai', region='NA'), Champion(name='Jarvan IV', region='NA'), Champion(name='Tristana', region='NA'), Champion(name='Tahm Kench', region='NA')], verbose=True)
+    roles, prob, confidence, alternative = get_roles(champion_roles, [Champion(name='Galio', region='NA'), Champion(name='Maokai', region='NA'), Champion(name='Nunu & Willump', region='NA'), Champion(name='Tristana', region='NA'), Champion(name='Tahm Kench', region='NA')], verbose=True)
+    roles, prob, confidence, alternative = iterative_get_roles(champion_roles, [Champion(name='Brand', region='NA'), Champion(name='Caitlyn', region='NA'), Champion(name='Vi', region='NA'), Champion(name='Lulu', region='NA'), Champion(name='Cassiopeia', region='NA')], verbose=True)
 
 
 if __name__ == '__main__':
