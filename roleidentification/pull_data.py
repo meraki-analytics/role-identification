@@ -18,21 +18,16 @@ def get_data(filename=None):
         champion_roles[champion.id] = d
 
     for champion, play_rates in champion_roles.items():
-        count_missing = 0
-        total_missing = 1.
+        number_missing = 0
+        missing_fraction = 1.
         for role in Role:
             if role not in play_rates:
-                count_missing += 1
+                number_missing += 1
             else:
-                total_missing -= champion_roles[champion][role]
-        missing_per_uncounted_role = total_missing / count_missing
+                missing_fraction -= champion_roles[champion][role]
+        missing_per_uncounted_role = missing_fraction / number_missing
         for role in Role:
             if role not in play_rates:
                 play_rates[role] = -1. + missing_per_uncounted_role
 
     return champion_roles
-
-
-if __name__ == '__main__':
-    get_data()
-

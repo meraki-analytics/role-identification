@@ -1,7 +1,7 @@
 import sys
 import itertools
 import copy
-from typing import List
+from typing import List, Union
 
 from cassiopeia.data import Role
 from cassiopeia import Champion
@@ -9,9 +9,37 @@ from cassiopeia import Champion
 from .pull_data import get_data
 
 
-def get_roles(champion_roles, composition: List[Champion], top=None, jungle=None, middle=None, adc=None, support=None, verbose=False):
+def get_roles(champion_roles, composition: List[Union[Champion, str, int]], top=None, jungle=None, middle=None, adc=None, support=None, verbose=False):
     """ Returns a dictionary with keys Top, Jungle, Middle, ADC, Support and values as names of the input champions. """
-    composition = [champion.id for champion in composition]
+    if isinstance(composition[0], Champion):
+        region = composition[0].region
+    else:
+        region = 'NA'
+    if isinstance(composition[0], str):
+        composition = [Champion(name=name, region='NA').id for name in composition]
+    elif isinstance(composition[0], Champion):
+        composition = [champion.id for champion in composition]
+    if isinstance(top, str):
+        top = Champion(name=top, region='NA').id
+    elif isinstance(top, Champion):
+        top = top.id
+    if isinstance(top, str):
+        jungle = Champion(name=jungle, region='NA').id
+    elif isinstance(jungle, Champion):
+        jungle = jungle.id
+    if isinstance(middle, str):
+        middle = Champion(name=middle, region='NA').id
+    elif isinstance(middle, Champion):
+        middle = middle.id
+    if isinstance(adc, str):
+        adc = Champion(name=adc, region='NA').id
+    elif isinstance(adc, Champion):
+        adc = adc.id
+    if isinstance(support, str):
+        support = Champion(name=support, region='NA').id
+    elif isinstance(support, Champion):
+        support = support.id
+
     second_best_metric = -float('inf')
     second_best_roles = None
     second_best_play_percents = None
@@ -160,17 +188,20 @@ def get_roles(champion_roles, composition: List[Champion], top=None, jungle=None
         #    print('')
 
         for role in [Role.top, Role.jungle, Role.middle, Role.adc, Role.support]:
-            print("{}: {}  ({}%)".format(role, best_roles[role], round(100.*champion_roles[best_roles[role]][role],2)))
+            print("{}: {}  ({}%)".format(role, best_roles[role].name, round(100.*champion_roles[best_roles[role]][role],2)))
         print("Probability: {}%".format(round(100.*best_metric, 1)))
         if not found_acceptable_alternative:
             print("Confidence: {}%".format(round(100.*confidence, 1)))
         else:
-            print("Confidence: {}% (Alternative is {})".format(round(100.*confidence, 1), alternative))
+            print("Confidence: {}% (Alternative is {})".format(round(100.*confidence, 1), [champion.name for champion in alternative]))
         print('')
+    best_roles = {role: Champion(id=id_, region=region) for role, id_ in best_roles.items()}
+    if second_best_roles is not None:
+        second_best_roles = {role: Champion(id=id_, region=region) for role, id_ in second_best_roles.items()}
     return best_roles, best_metric, confidence, second_best_roles
 
 
-def iterative_get_roles(champion_roles, composition: List[Champion], top=None, jungle=None, middle=None, adc=None, support=None, verbose=False):
+def iterative_get_roles(champion_roles, composition: List[Union[Champion, str, int]], top=None, jungle=None, middle=None, adc=None, support=None, verbose=False):
     fixed = {}
     if top is not None:
         fixed[Role.top] = top
@@ -214,13 +245,13 @@ def iterative_get_roles(champion_roles, composition: List[Champion], top=None, j
                 second_best_prob = _prob
                 second_best_roles = sbr
 
-        best = sorted([(role, name) for role, name in roles.items() if role not in fixed],
-                      key=lambda t: _champion_roles[t[1]][t[0]], reverse=True)[0]
+        best = sorted([(role, champion) for role, champion in roles.items() if role not in fixed],
+                      key=lambda t: _champion_roles[t[1].id][t[0]], reverse=True)[0]
         fixed[best[0]] = best[1]
 
     if verbose:
         for role in [Role.top, Role.jungle, Role.middle, Role.adc, Role.support]:
-            print("{}: {}  ({}%)".format(role, roles[role], round(100.*champion_roles[roles[role]][role], 2)))
+            print("{}: {}  ({}%)".format(role, roles[role].name, round(100.*champion_roles[roles[role].id][role], 2)))
         print("Probability: {}%".format(round(100. * prob, 1)))
         confidence = (prob - second_best_prob)/prob
         if not second_best_roles:
@@ -229,24 +260,8 @@ def iterative_get_roles(champion_roles, composition: List[Champion], top=None, j
             string = []
             for role in [Role.top, Role.jungle, Role.middle, Role.adc, Role.support]:
                 if roles[role] != second_best_roles[role]:
-                    string.append("{}: {}".format(role, second_best_roles[role]))
+                    string.append("{}: {}".format(role, second_best_roles[role].name))
             alternative = ', '.join(string)
             print("Confidence: {}% (Alternative is {})".format(round(100. * confidence, 1), alternative))
         print()
     return roles, prob, confidence, second_best_roles
-
-
-def main():
-    champion_roles = get_data()
-    if len(sys.argv) == 6:
-        c1, c2, c3, c4, c5 = sys.argv[1:6]
-        roles, prob, confidence, alternative = iterative_get_roles(champion_roles, [c1, c2, c3, c4, c5], verbose=True)
-        return
-
-    roles, prob, confidence, alternative = get_roles(champion_roles, [Champion(name='Galio', region='NA'), Champion(name='Maokai', region='NA'), Champion(name='Jarvan IV', region='NA'), Champion(name='Tristana', region='NA'), Champion(name='Tahm Kench', region='NA')], verbose=True)
-    roles, prob, confidence, alternative = get_roles(champion_roles, [Champion(name='Galio', region='NA'), Champion(name='Maokai', region='NA'), Champion(name='Nunu & Willump', region='NA'), Champion(name='Tristana', region='NA'), Champion(name='Tahm Kench', region='NA')], verbose=True)
-    roles, prob, confidence, alternative = iterative_get_roles(champion_roles, [Champion(name='Brand', region='NA'), Champion(name='Caitlyn', region='NA'), Champion(name='Vi', region='NA'), Champion(name='Lulu', region='NA'), Champion(name='Cassiopeia', region='NA')], verbose=True)
-
-
-if __name__ == '__main__':
-    main()
