@@ -23,7 +23,7 @@ def get_roles(champion_roles, composition: List[Union[Champion, str, int]], top=
         top = Champion(name=top, region='NA').id
     elif isinstance(top, Champion):
         top = top.id
-    if isinstance(top, str):
+    if isinstance(jungle, str):
         jungle = Champion(name=jungle, region='NA').id
     elif isinstance(jungle, Champion):
         jungle = jungle.id

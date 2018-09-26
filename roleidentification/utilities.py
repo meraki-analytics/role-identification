@@ -9,7 +9,7 @@ def _get_team_roles(team: Team, champion_roles=None):
     champions = [participant.champion for participant in team.participants]
     smite = None
     for participant in team.participants:
-        if participant.summoner_spell_d.name == 'Smite' or participant.summoner_spell_f.name == 'Smite':
+        if participant.summoner_spell_d.id == 11 or participant.summoner_spell_f.id == 11:
             if smite is None:
                 smite = participant.champion.name
             else:
