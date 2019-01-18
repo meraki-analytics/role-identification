@@ -1,5 +1,16 @@
 import cassiopeia as cass
-from cassiopeia.data import Role
+from cassiopeia import RoleGG
+from .data import Role
+
+# The Riot API, champion.gg, and this library all use different Role enums... Woo!
+# We have to do some conversion.
+role_conversion = {
+    RoleGG.top: Role.top,
+    RoleGG.jungle: Role.jungle,
+    RoleGG.middle: Role.middle,
+    RoleGG.adc: Role.adc,
+    RoleGG.support: Role.support,
+}
 
 
 def get_data(filename=None):
@@ -14,7 +25,7 @@ def get_data(filename=None):
     champion_roles = {}
     for champion in champions:
         champion.championgg.load()
-        d = {role: champion.championgg[role].play_rate for role in champion.championgg.roles}
+        d = {role_conversion[role]: champion.championgg[role].play_rate for role in champion.championgg.roles}
         champion_roles[champion.id] = d
 
     for champion, play_rates in champion_roles.items():

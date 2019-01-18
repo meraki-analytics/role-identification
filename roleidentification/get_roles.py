@@ -3,7 +3,7 @@ import itertools
 import copy
 from typing import List, Union
 
-from cassiopeia.data import Role
+from .data import Role
 from cassiopeia import Champion
 
 from .pull_data import get_data

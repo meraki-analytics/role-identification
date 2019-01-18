@@ -31,7 +31,6 @@ def _get_team_roles(team: Team, champion_roles=None):
 
 def get_team_roles(team: Team, champion_roles=None):
     roles = _get_team_roles(team, champion_roles)[0]
-    roles = {role: Champion(id=id_, region="NA") for role, id_ in roles.items()}
     return roles
 
 
