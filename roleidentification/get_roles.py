@@ -1,24 +1,40 @@
-import sys
 import itertools
 import copy
 from typing import List, Union
 
-from .data import Role
-from cassiopeia import Champion
-
-from .pull_data import get_data
+from cassiopeia import Champion, Position
 
 
-def get_roles(champion_roles, composition: List[Union[Champion, str, int]], top=None, jungle=None, middle=None, adc=None, support=None, verbose=False):
-    """ Returns a dictionary with keys Top, Jungle, Middle, ADC, Support and values as names of the input champions. """
-    if isinstance(composition[0], Champion):
-        region = composition[0].region
-    else:
-        region = 'NA'
-    if isinstance(composition[0], str):
-        composition = [Champion(name=name, region='NA').id for name in composition]
-    elif isinstance(composition[0], Champion):
-        composition = [champion.id for champion in composition]
+def highest_possible_playrate(champion_positions):
+    maxes = {Position.top: 0.0, Position.jungle: 0.0, Position.middle: 0.0, Position.bottom: 0.0, Position.utility: 0.0}
+    for champion, rates in champion_positions.items():
+        for position, rate in rates.items():
+            if rate > maxes[position]:
+                maxes[position] = rate
+    return sum(maxes.values()) / len(maxes)
+
+
+def calculate_metric(champion_positions, champions_by_position):
+    return sum(champion_positions[champion][position] for position, champion in champions_by_position.items()) / len(champions_by_position)
+
+
+def calculate_confidence(champion_positions, best_metric, second_best_metric):
+    #hpp = highest_possible_playrate(champion_positions)
+    #lpp = 0.0
+    #confidence = (best_metric - second_best_metric) / (hpp - lpp) * 100
+    confidence = (best_metric - second_best_metric) / best_metric * 100
+    return confidence
+
+
+def get_positions(champion_positions, composition: List[Union[Champion, str, int]], top=None, jungle=None, middle=None, bottom=None, utility=None):
+    # Check the types in `composition
+    for i, champion in enumerate(composition):
+        if isinstance(champion, str):
+            composition[i] = Champion(name=champion, region='NA').id
+        elif isinstance(champion, Champion):
+            composition[i] = champion.id
+
+    # Check the other input types
     if isinstance(top, str):
         top = Champion(name=top, region='NA').id
     elif isinstance(top, Champion):
@@ -31,122 +47,68 @@ def get_roles(champion_roles, composition: List[Union[Champion, str, int]], top=
         middle = Champion(name=middle, region='NA').id
     elif isinstance(middle, Champion):
         middle = middle.id
-    if isinstance(adc, str):
-        adc = Champion(name=adc, region='NA').id
-    elif isinstance(adc, Champion):
-        adc = adc.id
-    if isinstance(support, str):
-        support = Champion(name=support, region='NA').id
-    elif isinstance(support, Champion):
-        support = support.id
+    if isinstance(bottom, str):
+        bottom = Champion(name=bottom, region='NA').id
+    elif isinstance(bottom, Champion):
+        bottom = bottom.id
+    if isinstance(utility, str):
+        utility = Champion(name=utility, region='NA').id
+    elif isinstance(utility, Champion):
+        utility = utility.id
 
+    if None not in (top, jungle, middle, bottom, utility):
+        raise ValueError("The composition was predefined by the kwargs.")
+
+    # Set the initial guess to be the champion in the composition, order doesn't matter
+    best_positions = {
+        Position.top: composition[0],
+        Position.jungle: composition[1],
+        Position.middle: composition[2],
+        Position.bottom: composition[3],
+        Position.utility: composition[4]
+    }
+    best_metric = calculate_metric(champion_positions, best_positions)
     second_best_metric = -float('inf')
-    second_best_roles = None
-    second_best_play_percents = None
-    if None not in [top, jungle, middle, adc, support]:
-        best_roles = {
-            Role.top: top,
-            Role.jungle: jungle,
-            Role.middle: middle,
-            Role.adc: adc,
-            Role.support: support
-        }
-        best_play_percents = {
-            top: champion_roles[top][Role.top],
-            jungle: champion_roles[jungle][Role.jungle],
-            middle: champion_roles[middle][Role.middle],
-            adc: champion_roles[adc][Role.adc],
-            support: champion_roles[support][Role.support],
-        }
-        best_metric = sum(v for v in best_play_percents.values())/5
+    second_best_positions = None
+
+    # Figure out which champions and positions we need to fill
+    known_champions = [assigned for assigned in (top, jungle, middle, bottom, utility) if assigned is not None]
+    unknown_champions = list(set(composition) - set(known_champions))
+    unknown_positions = [position for position, assigned in zip(
+        (Position.top, Position.jungle, Position.middle, Position.bottom, Position.utility),
+        (top, jungle, middle, bottom, utility)
+    ) if assigned is None]
+    test_composition = {
+        Position.top: top,
+        Position.jungle: jungle,
+        Position.middle: middle,
+        Position.bottom: bottom,
+        Position.utility: utility
+    }
+    # Iterate over the positions we need to fill and record how well each composition "performs"
+    for champs in itertools.permutations(unknown_champions, len(unknown_positions)):
+        for i, position in enumerate(unknown_positions):
+            test_composition[position] = champs[i]
+
+        metric = calculate_metric(champion_positions, test_composition)
+        if metric > best_metric:
+            second_best_metric = best_metric
+            second_best_positions = best_positions
+            best_metric = metric
+            best_positions = copy.deepcopy(test_composition)
+
+        if best_metric > metric > second_best_metric:
+            second_best_metric = metric
+            second_best_positions = copy.deepcopy(test_composition)
+
+    best_play_percents = {champion: champion_positions[champion][position] for position, champion in best_positions.items()}
+    if second_best_positions is not None:
+        second_best_play_percents = {champion: champion_positions[champion][position] for position, champion in second_best_positions.items()}
     else:
-        best_roles = {
-            Role.top: composition[0],
-            Role.jungle: composition[1],
-            Role.middle: composition[2],
-            Role.adc: composition[3],
-            Role.support: composition[4]
-        }
-        best_play_percents = {
-            composition[0]: champion_roles[composition[0]][Role.top],
-            composition[1]: champion_roles[composition[1]][Role.jungle],
-            composition[2]: champion_roles[composition[2]][Role.middle],
-            composition[3]: champion_roles[composition[3]][Role.adc],
-            composition[4]: champion_roles[composition[4]][Role.support],
-        }
-        best_metric = sum(v for v in best_play_percents.values())/5
-        second_best_roles = {
-            Role.top: composition[0],
-            Role.jungle: composition[1],
-            Role.middle: composition[2],
-            Role.adc: composition[3],
-            Role.support: composition[4]
-        }
-        second_best_play_percents = {
-            composition[0]: champion_roles[composition[0]][Role.top],
-            composition[1]: champion_roles[composition[1]][Role.jungle],
-            composition[2]: champion_roles[composition[2]][Role.middle],
-            composition[3]: champion_roles[composition[3]][Role.adc],
-            composition[4]: champion_roles[composition[4]][Role.support],
-        }
-        second_best_metric = sum(v for v in best_play_percents.values())/5
-        for champs in itertools.permutations(composition, 5):
-            roles = {
-                Role.top: champion_roles[champs[0]][Role.top],
-                Role.jungle: champion_roles[champs[1]][Role.jungle],
-                Role.middle: champion_roles[champs[2]][Role.middle],
-                Role.adc: champion_roles[champs[3]][Role.adc],
-                Role.support: champion_roles[champs[4]][Role.support],
-            }
-            if top is not None and champs[0] != top:
-                continue
-            if jungle is not None and champs[1] != jungle:
-                continue
-            if middle is not None and champs[2] != middle:
-                continue
-            if adc is not None and champs[3] != adc:
-                continue
-            if support is not None and champs[4] != support:
-                continue
+        second_best_play_percents = None
 
-            metric = sum(v for v in roles.values())/5
-            if metric > best_metric:
-                second_best_metric = best_metric
-                second_best_roles = best_roles
-                best_metric = metric
-                best_roles = {
-                    Role.top: champs[0],
-                    Role.jungle: champs[1],
-                    Role.middle: champs[2],
-                    Role.adc: champs[3],
-                    Role.support: champs[4]
-                }
-                best_play_percents = {
-                    champs[0]: champion_roles[champs[0]][Role.top],
-                    champs[1]: champion_roles[champs[1]][Role.jungle],
-                    champs[2]: champion_roles[champs[2]][Role.middle],
-                    champs[3]: champion_roles[champs[3]][Role.adc],
-                    champs[4]: champion_roles[champs[4]][Role.support],
-                }
-            if best_metric > metric > second_best_metric:
-                second_best_metric = metric
-                second_best_roles = {
-                    Role.top: champs[0],
-                    Role.jungle: champs[1],
-                    Role.middle: champs[2],
-                    Role.adc: champs[3],
-                    Role.support: champs[4]
-                }
-                second_best_play_percents = {
-                    champs[0]: champion_roles[champs[0]][Role.top],
-                    champs[1]: champion_roles[champs[1]][Role.jungle],
-                    champs[2]: champion_roles[champs[2]][Role.middle],
-                    champs[3]: champion_roles[champs[3]][Role.adc],
-                    champs[4]: champion_roles[champs[4]][Role.support],
-                }
-
-    if second_best_roles == best_roles:
-        second_best_roles = None
+    if second_best_positions == best_positions:
+        second_best_positions = None
         second_best_play_percents = None
         second_best_metric = -float('inf')
     count_bad_assignments = 0
@@ -154,114 +116,54 @@ def get_roles(champion_roles, composition: List[Union[Champion, str, int]], top=
         if value < 0:
             count_bad_assignments += 1
 
-    count_secondary_bad_assignments = 0
-    if second_best_play_percents:
-        found_acceptable_alternative = True
-        for value in second_best_play_percents.values():
-            if value < 0:
-                count_secondary_bad_assignments += 1
-        #if count_secondary_bad_assignments > count_bad_assignments:
-        #    found_acceptable_alternative = False
-    else:
-        found_acceptable_alternative = False
-
-    confidence = (best_metric - second_best_metric)/best_metric
+    found_acceptable_alternative = (second_best_play_percents is not None)
 
     if found_acceptable_alternative:
-        string = []
-        for role in [Role.top, Role.jungle, Role.middle, Role.adc, Role.support]:
-            if best_roles[role] != second_best_roles[role]:
-                string.append("{}: {}".format(role, second_best_roles[role]))
-        alternative = ', '.join(string)
+        confidence = calculate_confidence(champion_positions, best_metric, second_best_metric)
     else:
-        alternative = None
+        confidence = 0.0
 
-    if verbose:
-        # These commented lines below are useful for debugging
-        #print("Best roles: {}".format(best_metric))
-        #if second_best_metric > -float('inf'):
-        #    print("Second best roles: {}".format(second_best_metric))
-        #    for role, champ in second_best_roles.items():
-        #        print("    {}: {} == {}".format(role, champ, champion_roles[champ][role]))
-        #    for role, champion in best_roles.items():
-        #        print(champion, champion_roles[champion])
-        #    print('')
-
-        for role in [Role.top, Role.jungle, Role.middle, Role.adc, Role.support]:
-            print("{}: {}  ({}%)".format(role, best_roles[role].name, round(100.*champion_roles[best_roles[role]][role],2)))
-        print("Probability: {}%".format(round(100.*best_metric, 1)))
-        if not found_acceptable_alternative:
-            print("Confidence: {}%".format(round(100.*confidence, 1)))
-        else:
-            print("Confidence: {}% (Alternative is {})".format(round(100.*confidence, 1), [champion.name for champion in alternative]))
-        print('')
-    best_roles = {role: Champion(id=id_, region=region) for role, id_ in best_roles.items()}
-    if second_best_roles is not None:
-        second_best_roles = {role: Champion(id=id_, region=region) for role, id_ in second_best_roles.items()}
-    return best_roles, best_metric, confidence, second_best_roles
+    best_positions = {position: Champion(id=id_, region='NA') for position, id_ in best_positions.items()}
+    if second_best_positions is not None:
+        second_best_positions = {position: Champion(id=id_, region='NA') for position, id_ in second_best_positions.items()}
+    return best_positions, best_metric, confidence, second_best_positions
 
 
-def iterative_get_roles(champion_roles, composition: List[Union[Champion, str, int]], top=None, jungle=None, middle=None, adc=None, support=None, verbose=False):
-    fixed = {}
+def iterative_get_roles(champion_positions, composition: List[Union[Champion, str, int]], top=None, jungle=None, middle=None, bottom=None, utility=None):
+    identified = {}
     if top is not None:
-        fixed[Role.top] = top
+        identified[Position.top] = top
     if jungle is not None:
-        fixed[Role.jungle] = jungle
+        identified[Position.jungle] = jungle
     if middle is not None:
-        fixed[Role.middle] = middle
-    if adc is not None:
-        fixed[Role.adc] = adc
-    if support is not None:
-        fixed[Role.support] = support
+        identified[Position.middle] = middle
+    if bottom is not None:
+        identified[Position.bottom] = bottom
+    if utility is not None:
+        identified[Position.utility] = utility
 
-    _champion_roles = copy.deepcopy(champion_roles)
-    second_best_roles = None
-    second_best_prob = -float('inf')
-    while len(fixed) < 4:
-        # Modify data
-        for role in fixed:
-            for champion, play_rates in _champion_roles.items():
-                if champion in fixed.values():
-                    continue
-                play_rate = play_rates[role]
-                play_rates[role] = -1.0
-                if play_rate > 0:
-                    roles_left = sum([1 for v in play_rates.values() if v > 0])
-                    if roles_left > 0:
-                        to_distribute = play_rate / roles_left
-                    else:
-                        to_distribute = 0.
-                    for r in play_rates:
-                        if play_rates[r] < 0:
-                            continue
-                        play_rates[r] += to_distribute
-        _fixed = {role.name.lower(): champion for role, champion in fixed.items()}
-        roles, prob, confidence, sbr = get_roles(_champion_roles, composition, **_fixed, verbose=False)
-        if sbr is not None:
-            _roles, _prob, _confidence, _ = get_roles(_champion_roles, composition, **{k.name.lower(): v for k, v in sbr.items()}, verbose=False)
+    if len(identified) >= len(composition):
+        raise ValueError("The composition was predefined by the kwargs.")
 
-            # I'm pretty sure `prob` can only increase with iterations of this loop
-            if prob > _prob > second_best_prob:
-                second_best_prob = _prob
-                second_best_roles = sbr
+    secondary_positions = None
+    secondary_metric = -float('inf')
+    while len(identified) < len(composition) - 1:
+        kwargs = {position.name.lower(): champion for position, champion in identified.items()}
+        positions, metric, confidence, sbp = get_positions(champion_positions, composition, **kwargs)
+        if sbp is not None:
+            _metric = calculate_metric(champion_positions, {position: champion.id for position, champion in sbp.items()})
 
-        best = sorted([(role, champion) for role, champion in roles.items() if role not in fixed],
-                      key=lambda t: _champion_roles[t[1].id][t[0]], reverse=True)[0]
-        fixed[best[0]] = best[1]
+            if secondary_positions is None:
+                secondary_positions = sbp
+                secondary_metric = _metric
+            elif metric > _metric > secondary_metric:
+                secondary_metric = _metric
+                secondary_positions = sbp
 
-    if verbose:
-        for role in [Role.top, Role.jungle, Role.middle, Role.adc, Role.support]:
-            print("{}: {}  ({}%)".format(role, roles[role].name, round(100.*champion_roles[roles[role].id][role], 2)))
-        print("Probability: {}%".format(round(100. * prob, 1)))
-        confidence = (prob - second_best_prob)/prob
-        if not second_best_roles:
-            print("Confidence: {}%".format(round(100. * confidence, 1)))
-        else:
-            string = []
-            for role in [Role.top, Role.jungle, Role.middle, Role.adc, Role.support]:
-                if roles[role] != second_best_roles[role]:
-                    string.append("{}: {}".format(role, second_best_roles[role].name))
-            alternative = ', '.join(string)
-            print("Confidence: {}% (Alternative is {})".format(round(100. * confidence, 1), alternative))
-        print()
-    return roles, prob, confidence, second_best_roles
+        # Done! Grab the results.
+        best = sorted([(position, champion) for position, champion in positions.items() if position not in identified],
+                      key=lambda t: champion_positions[t[1].id][t[0]], reverse=True)[0]
+        identified[best[0]] = best[1]
+        confidence = calculate_confidence(champion_positions, metric, secondary_metric)
+
+    return positions

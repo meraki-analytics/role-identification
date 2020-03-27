@@ -1,19 +1,9 @@
-import cassiopeia as cass
 from cassiopeia import Summoner
 
-from roleidentification.get_roles import get_data
-from roleidentification.utilities import get_team_roles
-
-config = cass.get_default_config()
-config['pipeline']['ChampionGG'] = {
-    "package": "cassiopeia_championgg",
-    "api_key": "CHAMPIONGG_KEY"  # Your api.champion.gg API key (or an env var containing it)
-  }
-cass.apply_settings(config)
-
+from roleidentification import pull_data, get_team_roles
 
 def main():
-    champion_roles = get_data()
+    champion_roles = pull_data()
 
     summoner = Summoner(name="Kalturi", region="NA")
     for match in summoner.match_history:
@@ -22,7 +12,8 @@ def main():
 
         roles = get_team_roles(match.red_team, champion_roles)
         print({role.name: champion.name for role, champion in roles.items()})
-    return
+
+        break
 
 
 if __name__ == "__main__":
