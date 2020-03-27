@@ -25,6 +25,6 @@ This code can use [Cassiopeia](https://github.com/meraki-analytics/cassiopeia), 
     print({role.name: champion.name for role, champion in roles.items()})
     
     # Output:
-    # {'top': 'Pantheon', 'jungle': 'Nunu', 'mid': 'Akali', 'adc': 'Caitlyn', 'support': 'Morgana'}
+    # {'top': 'Darius', 'jungle': 'Lee Sin', 'mid': 'Cassiopeia', 'adc': 'Draven', 'support': 'Braum'}
 
 See the `examples` directory for more.
