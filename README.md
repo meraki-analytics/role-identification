@@ -4,29 +4,27 @@
 
 Install from GitHub using pip:  `pip install git+https://github.com/meraki-analytics/role-identification.git`
 
-This code uses [Cassiopeia](https://github.com/meraki-analytics/cassiopeia), which will also be installed if it isn't already.
+This code can use [Cassiopeia](https://github.com/meraki-analytics/cassiopeia), which will be installed if it isn't already.
 
 ### Example
 
     # Pull the data required to make role assignments
     champion_roles = get_data()
+    
+    # You can pass in a list of champions to `get_roles`
+    roles = get_roles(champion_roles, ['Darius', 'Lee Sin', 'Cassiopeia', 'Draven', 'Braum'])
 
+    # Or you can use the utility function `get_team_roles` to get the roles from a Cassiopeia.Match.Team object
     # Pull a summoner's most recent match using Cassiopeia
-    summoner = Summoner(name="Kalturi", region="NA")
-    match = summoner.match_history[0]
-
-    # Use this role identification code to get the blue team's roles
-    roles = get_team_roles(match.blue_team, champion_roles)
+    match = cass.get_match(id=3344134840, region="NA")
+    team = match.blue_team
+    # Get the roles
+    roles = get_team_roles(team, champion_roles)
+    
+    # Print the results
     print({role.name: champion.name for role, champion in roles.items()})
-
+    
     # Output:
     # {'top': 'Pantheon', 'jungle': 'Nunu', 'mid': 'Akali', 'adc': 'Caitlyn', 'support': 'Morgana'}
 
 See the `examples` directory for more.
-
-
-### Work-In-Progress
-
-This code is a work in progress. It currently uses aggregated data from champion.gg to identify which champions play what roles. It then does a simple brute force calculation to identify the most likely lane assignment of each champion.
-
-In the future, we will replace champion.gg's data and the brute force algorithm with a robust machine learning algorithm that takes into account the champion, summoner spells, and runes.
