@@ -1,5 +1,4 @@
-import cassiopeia as cass
-from roleidentification import pull_data, get_roles, get_team_roles
+from roleidentification import pull_data, get_roles
 
 
 def main():
@@ -8,17 +7,9 @@ def main():
     print("Finished pulling data.")
     print()
 
-    champions = ['Darius', 'Lee Sin', 'Cassiopeia', 'Draven', 'Braum']
-    champions = [cass.Champion(name=name, region='NA').id for name in champions]
-    print(champions)
+    champions = [122, 64, 69, 119, 201]  # ['Darius', 'Lee Sin', 'Cassiopeia', 'Draven', 'Braum']
     roles = get_roles(champion_roles, champions)
-    print({role.lower(): cass.Champion(id=id, region='NA').name for role, id in roles.items()})
-
-    # Use the utility function `get_team_roles` to get the roles from a Cassiopeia.Match.Team object
-    match = cass.get_match(id=3344134840, region="NA")
-    team = match.blue_team
-    roles = get_team_roles(team, champion_roles)
-    print({role.name: champion.name for role, champion in roles.items()})
+    print(roles)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 import itertools
 import copy
-from typing import List, Union
+from typing import List
 
 
 def highest_possible_playrate(champion_positions):
@@ -16,10 +16,7 @@ def calculate_metric(champion_positions, champions_by_position):
     return sum(champion_positions[champion][position] for position, champion in champions_by_position.items()) / len(champions_by_position)
 
 
-def calculate_confidence(champion_positions, best_metric, second_best_metric):
-    #hpp = highest_possible_playrate(champion_positions)
-    #lpp = 0.0
-    #confidence = (best_metric - second_best_metric) / (hpp - lpp) * 100
+def calculate_confidence(best_metric, second_best_metric):
     confidence = (best_metric - second_best_metric) / best_metric * 100
     return confidence
 
@@ -29,7 +26,7 @@ def get_positions(champion_positions, composition: List[int], top=None, jungle=N
     for i, champion in enumerate(composition):
         if not isinstance(champion, int):
             raise ValueError("The composition must be a list of champion IDs.")
-    if  (top is not None and not isinstance(top, int)) or \
+    if (top is not None and not isinstance(top, int)) or \
             (jungle is not None and not isinstance(jungle, int)) or \
             (middle is not None and not isinstance(middle, int)) or \
             (bottom is not None and not isinstance(bottom, int)) or \
@@ -99,23 +96,23 @@ def get_positions(champion_positions, composition: List[int], top=None, jungle=N
     found_acceptable_alternative = (second_best_play_percents is not None)
 
     if found_acceptable_alternative:
-        confidence = calculate_confidence(champion_positions, best_metric, second_best_metric)
+        confidence = calculate_confidence(best_metric, second_best_metric)
     else:
         confidence = 0.0
 
     return best_positions, best_metric, confidence, second_best_positions
 
 
-def iterative_get_positions(champion_positions, composition: List[int], top=None, jungle=None, middle=None, bottom=None, utility=None):
+def get_roles(champion_positions, composition: List[int], top=None, jungle=None, middle=None, bottom=None, utility=None):
     # Check the types in `composition` and the other input types
     for i, champion in enumerate(composition):
         if not isinstance(champion, int):
             raise ValueError("The composition must be a list of champion IDs.")
-    if  (top is not None and not isinstance(top, int)) or \
-        (jungle is not None and not isinstance(jungle, int)) or \
-        (middle is not None and not isinstance(middle, int)) or \
-        (bottom is not None and not isinstance(bottom, int)) or \
-        (utility is not None and not isinstance(utility, int)):
+    if (top is not None and not isinstance(top, int)) or \
+            (jungle is not None and not isinstance(jungle, int)) or \
+            (middle is not None and not isinstance(middle, int)) or \
+            (bottom is not None and not isinstance(bottom, int)) or \
+            (utility is not None and not isinstance(utility, int)):
         raise ValueError("The composition must be a list of champion IDs.")
 
     identified = {}
@@ -152,41 +149,6 @@ def iterative_get_positions(champion_positions, composition: List[int], top=None
         best = sorted([(position, champion) for position, champion in positions.items() if position not in identified],
                       key=lambda t: champion_positions[t[1]][t[0]], reverse=True)[0]
         identified[best[0]] = best[1]
-        confidence = calculate_confidence(champion_positions, metric, secondary_metric)
+        confidence = calculate_confidence(metric, secondary_metric)
 
     return positions
-
-
-def iterative_get_roles(champion_positions, composition: List[Union["Champion", str, int]], top=None, jungle=None, middle=None, bottom=None, utility=None):
-    from cassiopeia import Champion
-
-    # Shallow copy so we don't modify the list in-place
-    composition = [champion for champion in composition]
-    for i, champion in enumerate(composition):
-        if isinstance(champion, str):
-            composition[i] = Champion(name=champion, region='NA').id
-        elif isinstance(champion, Champion):
-            composition[i] = champion.id
-
-    if isinstance(top, str):
-        top = Champion(name=top, region='NA').id
-    elif isinstance(top, Champion):
-        top = top.id
-    if isinstance(jungle, str):
-        jungle = Champion(name=jungle, region='NA').id
-    elif isinstance(jungle, Champion):
-        jungle = jungle.id
-    if isinstance(middle, str):
-        middle = Champion(name=middle, region='NA').id
-    elif isinstance(middle, Champion):
-        middle = middle.id
-    if isinstance(bottom, str):
-        bottom = Champion(name=bottom, region='NA').id
-    elif isinstance(bottom, Champion):
-        bottom = bottom.id
-    if isinstance(utility, str):
-        utility = Champion(name=utility, region='NA').id
-    elif isinstance(utility, Champion):
-        utility = utility.id
-
-    return iterative_get_positions(champion_positions, composition, top, jungle, middle, bottom, utility)
