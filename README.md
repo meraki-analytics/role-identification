@@ -4,7 +4,7 @@
 
 Install from GitHub using pip: `pip install git+https://github.com/meraki-analytics/role-identification.git`
 
-This code can use [Cassiopeia](https://github.com/meraki-analytics/cassiopeia), which will be installed if it isn't already.
+This code can be used in [Cassiopeia](https://github.com/meraki-analytics/cassiopeia) `Match` objects.
 
 ### Example Using Champion IDs
 
