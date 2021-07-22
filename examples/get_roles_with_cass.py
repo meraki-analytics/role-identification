@@ -2,6 +2,7 @@ import cassiopeia as cass
 from roleidentification import pull_data
 from roleidentification.utilities import get_team_roles
 
+API_KEY = "your key here"
 
 def main():
     print("Pulling data...")
@@ -10,6 +11,7 @@ def main():
     print()
 
     # Pull a summoner's most recent match using Cassiopeia
+    cass.set_riot_api_key(API_KEY)
     match = cass.get_match(id=3344134840, region="NA")
     team = match.blue_team
     # Get the roles
